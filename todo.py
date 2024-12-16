@@ -1,11 +1,13 @@
 import flet as ft
 
 class Task(ft.Column):
-    def __init__(self, task_name, task_delete):
+    def __init__(self, task_name, task_status_change, task_delete):
         super().__init__()
+        self.completed = False
         self.task_name = task_name
+        self.task_status_change = task_status_change
         self.task_delete = task_delete
-        self.display_task = ft.Checkbox(value=False, label=self.task_name)
+        self.display_task = ft.Checkbox(value=False, label=self.task_name, on_change=self.status_changed)
         self.edit_name = ft.TextField(expand=1)
 
         self.display_view = ft.Row(
@@ -63,13 +65,23 @@ class Task(ft.Column):
     def delete_clicked(self, e):
         self.task_delete(self)
 
+    def status_changed(self, e):
+        self.completed = self.display_task.value
+        self.task_status_change()
+
 class ToDoApp(ft.Column):
     def __init__(self):
         super().__init__()
         self.new_task = ft.TextField(hint_text="what's needs to be done", expand=True  )
         self.tasks = ft.Column()
+        self.filter  = ft.Tabs(
+            selected_index=0,
+            on_change=self.tabs_changed,
+            tabs=[ft.Tab(text="all"), ft.Tab(text="active"), ft.Tab(text="completed")]
+        )
         self.width=600
         self.controls = [
+            self.filter,
             ft.Row(
                 controls=[
                     self.new_task,
@@ -78,15 +90,31 @@ class ToDoApp(ft.Column):
             ),
             self.tasks
         ]
+
+    def before_update(self):
+        status = self.filter.tabs[self.filter.selected_index].text
+        for task in self.tasks.controls:
+            task.visible = (
+                status=="all"
+                or status=="active" and task.completed==False
+                or status=="completed" and task.completed
+            )
+        return super().before_update()
     
     def add_clicked(self, e):
-        task = Task(self.new_task.value, self.task_delete)
+        task = Task(self.new_task.value, self.task_status_change, self.task_delete)
         self.tasks.controls.append(task)
         self.new_task.value = ""
         self.update()
 
     def task_delete(self, task):
         self.tasks.controls.remove(task)
+        self.update()
+
+    def tabs_changed(self, e):
+        self.update()
+
+    def task_status_change(self):
         self.update()
 
 
