@@ -79,26 +79,50 @@ class ToDoApp(ft.Column):
             on_change=self.tabs_changed,
             tabs=[ft.Tab(text="all"), ft.Tab(text="active"), ft.Tab(text="completed")]
         )
+        self.remaining_text = ft.Text("0 active item(s) left")
+        self.footer = ft.Row(
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        controls=[
+                self.remaining_text,
+                ft.OutlinedButton(text="Clear completed", on_click=self.clear_clicked)
+            ]
+        )
+
         self.width=600
         self.controls = [
-            self.filter,
+            ft.Row(
+                [ft.Text(value="Todos", theme_style=ft.TextThemeStyle.HEADLINE_MEDIUM)],
+                alignment=ft.MainAxisAlignment.CENTER
+            ),
             ft.Row(
                 controls=[
                     self.new_task,
                     ft.FloatingActionButton(icon=ft.Icons.ADD, on_click=self.add_clicked)
                 ]
             ),
-            self.tasks
+            ft.Column(
+                spacing=25,
+                controls=[
+                    self.filter,
+                    self.tasks,
+                    self.footer
+                ]
+            )
         ]
 
     def before_update(self):
         status = self.filter.tabs[self.filter.selected_index].text
+        count = 0
         for task in self.tasks.controls:
             task.visible = (
                 status=="all"
                 or status=="active" and task.completed==False
                 or status=="completed" and task.completed
             )
+            if not task.completed:
+                count += 1
+        self.remaining_text.value = f"{count} active item(s) left"
         return super().before_update()
     
     def add_clicked(self, e):
@@ -115,6 +139,13 @@ class ToDoApp(ft.Column):
         self.update()
 
     def task_status_change(self):
+        self.update()
+
+
+    def clear_clicked(self, e):
+        for task in self.tasks.controls:
+            if(task.completed):
+                self.tasks.controls.remove(task)
         self.update()
 
 
